@@ -1,4 +1,4 @@
-import db.Db;
+import DB.Db;
 import java.sql.*;
 
 public class App {
@@ -8,7 +8,7 @@ public class App {
    if (cn !=null){
     try{
         Statement st = cn.createStatement();
-        ResultSet rs = st.executeQuery("SELECT dni,nombres LIMIT 5;");
+        ResultSet rs = st.executeQuery("SELECT dni,nombres FROM paciente LIMIT 5;");
         System.out.println("Listado de pacientes");
         while (rs.next()){
             System.out.println(rs.getString("dni")+ "-" + rs.getString("nombres"));
