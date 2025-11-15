@@ -54,14 +54,14 @@ public class Menu {
     
     private static void actualizarPaciente() {
         try (Connection cn = Db.conectar()) {
-            System.out.print("ID del paciente: "); int id = Integer.parseInt(sc.nextLine());
+            System.out.print("DNI del paciente: "); int DNI = Integer.parseInt(sc.nextLine());
             System.out.print("Nombres: "); String nombres = sc.nextLine();
             System.out.print("Apellido paterno: "); String ap = sc.nextLine();
             System.out.print("Apellido materno: "); String am = sc.nextLine();
             System.out.print("Estado civil: "); String ec = sc.nextLine();
 
             CallableStatement cs = cn.prepareCall("{CALL sp_paciente_update(?,?,?,?,?)}");
-            cs.setInt(1, id);
+            cs.setInt(1, DNI);
             cs.setString(2, nombres);
             cs.setString(3, ap);
             cs.setString(4, am);
