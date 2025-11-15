@@ -88,7 +88,7 @@ public class Menu {
             System.out.println("Error: " + e.getMessage());
         }
     }
-    
+
     private static void registrarFactura() {
         try (Connection cn = Db.conectar()) {
 
@@ -96,6 +96,19 @@ public class Menu {
             System.out.print("Estado (PAGADO/PENDIENTE): "); String estado = sc.nextLine();
             System.out.print("Monto total: "); double monto = Double.parseDouble(sc.nextLine());
             System.out.print("ID paciente: "); int idP = Integer.parseInt(sc.nextLine());
+            
+            CallableStatement cs = cn.prepareCall("{CALL sp_factura_insert(?,?,?,?)}");
+            cs.setDate(1, Date.valueOf(fecha));
+            cs.setString(2, estado);
+            cs.setDouble(3, monto);
+            cs.setInt(4, idP);
 
+            ResultSet rs = cs.executeQuery();
+            while (rs.next()) System.out.println(rs.getString(1));
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
     
 }
