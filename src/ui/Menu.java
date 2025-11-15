@@ -59,7 +59,7 @@ public class Menu {
             System.out.print("Apellido paterno: "); String ap = sc.nextLine();
             System.out.print("Apellido materno: "); String am = sc.nextLine();
             System.out.print("Estado civil: "); String ec = sc.nextLine();
-            
+
             CallableStatement cs = cn.prepareCall("{CALL sp_paciente_update(?,?,?,?,?)}");
             cs.setInt(1, id);
             cs.setString(2, nombres);
@@ -74,4 +74,6 @@ public class Menu {
             System.out.println("Error: " + e.getMessage());
         }
     }
+
+    
 }
