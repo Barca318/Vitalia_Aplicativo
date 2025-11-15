@@ -1,4 +1,4 @@
-import DB.Db;
+import db.Db;
 import java.sql.*;
 
 public class App {
