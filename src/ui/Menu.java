@@ -96,7 +96,7 @@ public class Menu {
             System.out.print("Estado (PAGADO/PENDIENTE): "); String estado = sc.nextLine();
             System.out.print("Monto total: "); double monto = Double.parseDouble(sc.nextLine());
             System.out.print("ID paciente: "); int idP = Integer.parseInt(sc.nextLine());
-            
+
             CallableStatement cs = cn.prepareCall("{CALL sp_factura_insert(?,?,?,?)}");
             cs.setDate(1, Date.valueOf(fecha));
             cs.setString(2, estado);
@@ -105,6 +105,21 @@ public class Menu {
 
             ResultSet rs = cs.executeQuery();
             while (rs.next()) System.out.println(rs.getString(1));
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+        private static void calcularTotal() {
+        try (Connection cn = Db.conectar()) {
+            System.out.print("ID paciente: "); int idP = Integer.parseInt(sc.nextLine());
+
+            PreparedStatement ps = cn.prepareStatement("SELECT fn_total_facturas_paciente(?)");
+            ps.setInt(1, idP);
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) System.out.println("Total facturado: S/. " + rs.getDouble(1));
 
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
