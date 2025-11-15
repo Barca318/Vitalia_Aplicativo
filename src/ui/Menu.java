@@ -75,5 +75,17 @@ public class Menu {
         }
     }
 
-    
+    private static void eliminarPaciente() {
+        try (Connection cn = Db.conectar()) {
+            System.out.print("ID del paciente: "); int id = Integer.parseInt(sc.nextLine());
+
+            CallableStatement cs = cn.prepareCall("{CALL sp_paciente_delete(?)}");
+            cs.setInt(1, id);
+
+            ResultSet rs = cs.executeQuery();
+            while (rs.next()) System.out.println(rs.getString(1));
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
 }
