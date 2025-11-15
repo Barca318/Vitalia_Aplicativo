@@ -7,7 +7,7 @@ public class Menu {
     private static Scanner sc = new Scanner(System.in);
     public static void mainMenu() {
         while (true) {
-            System.out.println("\n=== VITALIA – MENÚ PRINCIPAL ===");
+            System.out.println("\n VITALIA - MENÚ PRINCIPAL");
             System.out.println("1. Insertar Paciente");
             System.out.println("2. Actualizar Paciente");
             System.out.println("3. Eliminar Paciente");
