@@ -77,10 +77,10 @@ public class Menu {
 
     private static void eliminarPaciente() {
         try (Connection cn = Db.conectar()) {
-            System.out.print("ID del paciente: "); int id = Integer.parseInt(sc.nextLine());
+            System.out.print("DNI del paciente: "); int DNI = Integer.parseInt(sc.nextLine());
 
             CallableStatement cs = cn.prepareCall("{CALL sp_paciente_delete(?)}");
-            cs.setInt(1, id);
+            cs.setInt(1, DNI);
 
             ResultSet rs = cs.executeQuery();
             while (rs.next()) System.out.println(rs.getString(1));
