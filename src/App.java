@@ -4,7 +4,7 @@ import java.sql.*;
 public class App {
 
    public static void main(String[] args){
-   Connection cn = DB.Db.conectar();
+   Connection cn = db.Db.conectar();
    if (cn !=null){
     try{
         Statement st = cn.createStatement();
