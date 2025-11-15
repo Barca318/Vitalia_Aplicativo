@@ -4,7 +4,7 @@ import java.sql.*;
 public class Db {
     private static final String URL  = "jdbc:mysql://localhost:3306/vitalia_db?useSSL=false&serverTimezone=UTC";
     private static final String USER = "root";
-    private static final String PASS = "root";
+    private static final String PASS = "1";
 
     static {
         try {
