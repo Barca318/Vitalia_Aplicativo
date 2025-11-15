@@ -88,6 +88,14 @@ public class Menu {
             System.out.println("Error: " + e.getMessage());
         }
     }
+    
+    private static void registrarFactura() {
+        try (Connection cn = Db.conectar()) {
+
+            System.out.print("Fecha (YYYY-MM-DD): "); String fecha = sc.nextLine();
+            System.out.print("Estado (PAGADO/PENDIENTE): "); String estado = sc.nextLine();
+            System.out.print("Monto total: "); double monto = Double.parseDouble(sc.nextLine());
+            System.out.print("ID paciente: "); int idP = Integer.parseInt(sc.nextLine());
 
     
 }
