@@ -1,74 +1,73 @@
--- Insertar Paciente
+USE vitalia_db;
 
-DROP PROCEDURE IF EXISTS sp_paciente_insert;
+-- insertar
+
 DELIMITER //
-CREATE PROCEDURE sp_paciente_insert(
-	IN p_dni CHAR(8),
+CREATE PROCEDURE sp_insert_paciente(
+    IN p_dni CHAR(8),
     IN p_nombres VARCHAR(100),
-    IN p_ap_pat VARCHAR(100),
-    IN p_ap_mat VARCHAR(100),
-    IN p_estado_civil VARCHAR(30)
+    IN p_apellido_paterno VARCHAR(100),
+    IN p_apellido_materno VARCHAR(100),
+    IN p_fecha_nacimiento DATE
 )
 BEGIN
-INSERT INTO PACIENTE(dni,nombres,apellido_paterno, apellido_materno, estado_civil) VALUES
-	(p_dni,p_nombres,p_ap_pat, p_ap_mat, p_estado_civil);
-	SELECT 'Paciente insertado correctamente' AS mensaje;
+    INSERT INTO PACIENTE(dni, nombres, apellido_paterno, apellido_materno, fecha_nacimiento)
+    VALUES(p_dni, p_nombres, p_apellido_paterno, p_apellido_materno, p_fecha_nacimiento);
 END //
 DELIMITER ;
 
--- Actualizar Paciente
+-- actualizar
 
-DROP PROCEDURE IF EXISTS sp_paciente_update;
-DELIMITER //
-CREATE PROCEDURE sp_paciente_update(
-	IN p_id INT,
-	IN p_dni CHAR(8),
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_paciente (
+    IN p_id INT,
+    IN p_dni VARCHAR(15),
     IN p_nombres VARCHAR(100),
-    IN p_ap_pat VARCHAR(100),
-    IN p_ap_mat VARCHAR(100),
-    IN p_estado_civil VARCHAR(30)
+    IN p_ap_paterno VARCHAR(100),
+    IN p_ap_materno VARCHAR(100),
+    IN p_fecha_nac DATE
 )
 BEGIN
-UPDATE PACIENTE
-	SET Nombres = p_nombres,
-    apellido_paterno = p_ap_pat, 
-    apellido_materno = p_ap_mat, 
-    estado_civil = p_estado_civil
-	WHERE id_paciente = p_id;
-	SELECT 'Paciente actualizado correctamente' AS mensaje;
-END //
+    UPDATE paciente
+    SET 
+        dni = p_dni,
+        nombres = p_nombres,
+        apellido_paterno = p_ap_paterno,
+        apellido_materno = p_ap_materno,
+        fecha_nacimiento = p_fecha_nac
+    WHERE id_paciente = p_id;
+END $$
+
 DELIMITER ;
 
--- Eliminar Paciente
+-- eliminar
 
-DROP PROCEDURE IF EXISTS sp_paciente_delete;
 DELIMITER //
-CREATE PROCEDURE sp_paciente_delete(
-	IN p_id INT)
+CREATE PROCEDURE sp_delete_paciente(
+    IN p_id INT
+)
 BEGIN
-	DELETE FROM PACIENTE WHERE id_paciente= p_id;
-	SELECT 'Paciente eliminado correctamente' AS mensaje;
+    DELETE FROM PACIENTE WHERE id_paciente = p_id;
 END //
 DELIMITER ;
 
--- Registrar Factura
 
-DROP PROCEDURE IF EXISTS sp_factura_insert;
+CREATE TABLE LOG_PACIENTE(
+   id INT AUTO_INCREMENT PRIMARY KEY,
+   mensaje VARCHAR(255),
+   fecha DATETIME
+);
+
 DELIMITER //
-CREATE PROCEDURE sp_factura_insert(
-	IN p_fecha DATE,
-    IN p_estado VARCHAR(30),
-    IN p_monto DECIMAL(12,2),
-    IN p_id_paciente INT
-    )
+CREATE TRIGGER trg_paciente_insert
+AFTER INSERT ON PACIENTE
+FOR EACH ROW
 BEGIN
-	INSERT INTO FACTURA(fecha, estado_pago, monto_total, id_paciente) VALUES
-		(p_fecha, p_estado, p_monto, p_id_paciente);
-	SELECT 'Factura registrada correctamente' AS mensaje;
-END //
-DELIMITER ;
-
-
+   INSERT INTO LOG_PACIENTE(mensaje, fecha)
+   VALUES(CONCAT('Se insertó el paciente ', NEW.nombres), NOW());
+END//
+DELIMITER ;
 
 
 
