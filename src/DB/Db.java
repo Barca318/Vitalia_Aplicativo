@@ -1,26 +1,19 @@
 package db;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 public class Db {
     private static final String URL  = "jdbc:mysql://localhost:3306/vitalia_db?useSSL=false&serverTimezone=UTC";
     private static final String USER = "root";
     private static final String PASS = "1";
 
-    static {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            System.err.println("No se encontró el driver JDBC de MySQL en el classpath: " + e.getMessage());
-        }
-    }
-
     public static Connection conectar() {
         try {
             Connection cn = DriverManager.getConnection(URL, USER, PASS);
-            System.out.println("Conexión establecida correctamente con la base de datos Vitalia.");
             return cn;
-        } catch (SQLException e) {
-            System.out.println("Error de conexión: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error al conectar a la BD: " + e.getMessage());
             return null;
         }
     }
