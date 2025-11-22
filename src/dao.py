@@ -2,10 +2,10 @@
 from db import get_connection
 from models import Paciente, Factura, FichaMedica, Enfermedad, Habitacion, Ingreso
 
-# ===================================================
-# PACIENTE
-# ===================================================
+
+# ---------- PACIENTE ----------
 def insertar_paciente(p: Paciente):
+    
     conn = get_connection()
     if not conn:
         return False, "No hay conexión"
@@ -121,9 +121,8 @@ def listar_pacientes():
     finally:
         conn.close()
 
-# ===================================================
-# FACTURA
-# ===================================================
+
+# ---------- FACTURA ----------
 def registrar_factura(f: Factura):
     conn = get_connection()
     if not conn:
@@ -140,6 +139,10 @@ def registrar_factura(f: Factura):
     finally:
         conn.close()
 
+
+
+
+
 def buscar_factura_por_id(id_factura: int):
     conn = get_connection()
     if not conn:
@@ -155,6 +158,23 @@ def buscar_factura_por_id(id_factura: int):
     except Exception as e:
         print("Error buscar_factura_por_id:", e)
         return None
+    finally:
+        conn.close()
+def eliminar_factura(id_factura: int):
+    conn = get_connection()
+    if not conn:
+        return False, "No hay conexión"
+
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM FACTURA WHERE id_factura = %s", (id_factura,))
+        conn.commit()
+        cur.close()
+        return True, "Factura eliminada"
+
+    except Exception as e:
+        return False, str(e)
+
     finally:
         conn.close()
 
@@ -201,6 +221,25 @@ def listar_facturas_con_pacientes():
     finally:
         conn.close()
 
+
+
+def listar_promociones():
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM promocion")
+        return cur.fetchall()
+    except Exception as e:
+        print("Error listar_promociones:", e)
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+
+
+
+
 def total_facturado_general():
     conn = get_connection()
     if not conn:
@@ -233,9 +272,6 @@ def total_facturado_por_paciente(id_paciente: int):
     finally:
         conn.close()
         
-# ===================================================
-# FICHA MEDICA
-# ===================================================
 
 def insertar_ficha_medica(fecha, marcha, otros, observ, id_paciente, id_ingreso):
     try:
@@ -373,6 +409,7 @@ def obtener_enfermedades_de_ficha(id_ficha):
             INNER JOIN enfermedad e ON c.id_enfermedad = e.id_enfermedad
             WHERE c.id_ficha = %s
         """
+
         cursor.execute(query, (id_ficha,))
         return cursor.fetchall()
 
@@ -489,7 +526,7 @@ def listar_habitaciones():
         conn.close()
 
 
-def buscar_habitaciones(num=None, tipo=None, estado=None):
+def buscar_habitacion(num_habitacion, estado, tipo_habitacion):
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
@@ -497,13 +534,13 @@ def buscar_habitaciones(num=None, tipo=None, estado=None):
         sql = "SELECT * FROM habitacion WHERE 1=1"
         params = []
 
-        if num:
+        if num_habitacion:
             sql += " AND num_habitacion LIKE %s"
-            params.append(f"%{num}%")
+            params.append(f"%{num_habitacion}%")
 
-        if tipo:
+        if tipo_habitacion:
             sql += " AND tipo_habitacion = %s"
-            params.append(tipo)
+            params.append(tipo_habitacion)
 
         if estado:
             sql += " AND estado = %s"
@@ -565,19 +602,19 @@ def registrar_ingreso(i: Ingreso):
         (estado,) = cur.fetchone()
 
         if estado != "Disponible":
-            return False, "Habitación no disponible"
+            return False, "La habitación no está disponible"
 
         # registrar ingreso
         sql = """INSERT INTO ingreso (fecha_ingreso, id_paciente, id_habitacion, id_plan)
                  VALUES (%s,%s,%s,%s)"""
         cur.execute(sql, (i.fecha_ingreso, i.id_paciente, i.id_habitacion, i.id_plan))
 
-        # ocupar habitación
-        cur.execute("""UPDATE habitacion SET estado='Ocupada'
-                       WHERE id_habitacion=%s""", (i.id_habitacion,))
+        # cambiar habitación a OCUPADA
+        cur.execute("UPDATE habitacion SET estado='Ocupada' WHERE id_habitacion=%s",
+                    (i.id_habitacion,))
 
         conn.commit()
-        return True, "Ingreso registrado"
+        return True, "Ingreso registrado correctamente"
 
     except Exception as e:
         print("Error registrar_ingreso:", e)
@@ -587,15 +624,15 @@ def registrar_ingreso(i: Ingreso):
         conn.close()
 
 
-def editar_ingreso(i: Ingreso, habitacion_anterior):
+def editar_ingreso(i: Ingreso, hab_anterior):
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # si cambia la habitación
-        if i.id_habitacion != habitacion_anterior:
+        # si cambia de habitación
+        if i.id_habitacion != hab_anterior:
             cur.execute("UPDATE habitacion SET estado='Disponible' WHERE id_habitacion=%s",
-                        (habitacion_anterior,))
+                        (hab_anterior,))
             cur.execute("UPDATE habitacion SET estado='Ocupada' WHERE id_habitacion=%s",
                         (i.id_habitacion,))
 
@@ -603,9 +640,8 @@ def editar_ingreso(i: Ingreso, habitacion_anterior):
                  SET fecha_ingreso=%s, id_paciente=%s,
                      id_habitacion=%s, id_plan=%s
                  WHERE id_ingreso=%s"""
-
-        cur.execute(sql, (i.fecha_ingreso, i.id_paciente,
-                          i.id_habitacion, i.id_plan, i.id_ingreso))
+        cur.execute(sql, (i.fecha_ingreso, i.id_paciente, i.id_habitacion, 
+                          i.id_plan, i.id_ingreso))
 
         conn.commit()
         return True, "Ingreso actualizado"
@@ -625,7 +661,7 @@ def eliminar_ingreso(id_ingreso, id_habitacion):
 
         cur.execute("DELETE FROM ingreso WHERE id_ingreso=%s", (id_ingreso,))
 
-        # liberar la habitación
+        # liberar habitación
         cur.execute("UPDATE habitacion SET estado='Disponible' WHERE id_habitacion=%s",
                     (id_habitacion,))
 
@@ -645,19 +681,22 @@ def listar_ingresos():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
 
-        query = """
+        sql = """
             SELECT i.id_ingreso, i.fecha_ingreso,
-                   CONCAT(p.nombres, ' ', p.apellido_paterno) AS paciente,
+                   CONCAT(p.nombres,' ',p.apellido_paterno,' ',p.apellido_materno) AS paciente,
                    h.num_habitacion AS habitacion,
-                   i.id_plan
+                   i.id_plan,
+                   i.id_paciente,
+                   i.id_habitacion
             FROM ingreso i
-            INNER JOIN paciente p ON p.id_paciente = i.id_paciente
-            INNER JOIN habitacion h ON h.id_habitacion = i.id_habitacion
+            INNER JOIN paciente p ON p.id_paciente=i.id_paciente
+            INNER JOIN habitacion h ON h.id_habitacion=i.id_habitacion
         """
-
-        cur.execute(query)
+        cur.execute(sql)
         return cur.fetchall()
-    except:
+
+    except Exception as e:
+        print("Error listar_ingresos:", e)
         return []
     finally:
         cur.close()
@@ -671,7 +710,7 @@ def historial_habitacion(id_habitacion):
 
         cur.execute("""
             SELECT * FROM ingreso
-            WHERE id_habitacion = %s
+            WHERE id_habitacion=%s
             ORDER BY fecha_ingreso
         """, (id_habitacion,))
 
@@ -682,3 +721,56 @@ def historial_habitacion(id_habitacion):
     finally:
         cur.close()
         conn.close()
+        
+def listar_planes():
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM plan_servicio")
+        return cur.fetchall()
+    except:
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+
+def obtener_plan(id_plan):
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM plan_servicio WHERE id_plan=%s", (id_plan,))
+        return cur.fetchone()
+    except Exception as e:
+        print("Error obtener_plan:", e)
+        return None
+    finally:
+        cur.close()
+        conn.close()
+
+def registrar_factura_plan(id_paciente, id_plan):
+    try:
+        plan = obtener_plan(id_plan)
+        if not plan:
+            return False, "El plan no existe"
+
+        monto = plan["tarifa"]
+
+        conn = get_connection()
+        cur = conn.cursor()
+
+        sql = """INSERT INTO factura 
+                 (id_paciente, fecha, estado_pago, forma_financiamiento, monto_total, id_plan)
+                 VALUES (%s, NOW(), 'Pendiente', 'Plan de servicio', %s, %s)"""
+
+        cur.execute(sql, (id_paciente, monto, id_plan))
+        conn.commit()
+
+        return True, "Factura generada correctamente"
+    except Exception as e:
+        return False, f"Error: {e}"
+    finally:
+        cur.close()
+        conn.close()
+
+        
