@@ -1,0 +1,488 @@
+-- Proyecto: Vitalia – Registro de Clientes
+
+
+
+CREATE DATABASE IF NOT EXISTS vitalia_db
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+USE vitalia_db;
+
+
+-- Limpieza (permite re-ejecutar el script)
+
+DROP TABLE IF EXISTS RUTINA_PACIENTE;
+DROP TABLE IF EXISTS ALERGIAS_FICHA;
+DROP TABLE IF EXISTS PUEDE_APLICAR;
+DROP TABLE IF EXISTS FACTURA;
+DROP TABLE IF EXISTS PROMOCION;
+DROP TABLE IF EXISTS CONTIENE;
+DROP TABLE IF EXISTS ENFERMEDAD;
+DROP TABLE IF EXISTS FICHA_MEDICA;
+DROP TABLE IF EXISTS INGRESO;
+DROP TABLE IF EXISTS PLAN_SERVICIO;
+DROP TABLE IF EXISTS HABITACION;
+DROP TABLE IF EXISTS TIENE;
+DROP TABLE IF EXISTS TELEFONOS_FAMILIAR;
+DROP TABLE IF EXISTS FAMILIAR;
+DROP TABLE IF EXISTS PACIENTE;
+
+
+-- TABLAS "MAESTRAS"
+
+
+
+-- PACIENTE
+
+CREATE TABLE PACIENTE (
+  id_paciente       INT PRIMARY KEY AUTO_INCREMENT,
+  dni               CHAR(8) NOT NULL UNIQUE,
+  nombres           VARCHAR(100) NOT NULL,
+  apellido_paterno  VARCHAR(100) NOT NULL,
+  apellido_materno  VARCHAR(100) NOT NULL,
+  fecha_nacimiento  DATE NULL,
+  estado_civil      VARCHAR(30) NULL,
+  profesion         VARCHAR(80) NULL,
+  calle             VARCHAR(120) NULL,
+  numero            VARCHAR(15) NULL,
+  distrito          VARCHAR(80) NULL,
+  provincia         VARCHAR(80) NULL,
+  num_hijos         INT NULL DEFAULT 0,
+  observaciones     VARCHAR(500) NULL,
+  CHECK (num_hijos >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- FAMILIAR
+
+CREATE TABLE FAMILIAR (
+  id_familiar       INT PRIMARY KEY AUTO_INCREMENT,
+  nombres           VARCHAR(100) NOT NULL,
+  apellido_paterno  VARCHAR(100) NOT NULL,
+  apellido_materno  VARCHAR(100) NOT NULL,
+  calle             VARCHAR(120) NULL,
+  numero            VARCHAR(15) NULL,
+  distrito          VARCHAR(80) NULL,
+  provincia         VARCHAR(80) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- HABITACION
+CREATE TABLE HABITACION (
+  id_habitacion     INT PRIMARY KEY AUTO_INCREMENT,
+  num_habitacion    VARCHAR(10) NOT NULL,
+  estado            VARCHAR(30) NULL,
+  tipo_habitacion   VARCHAR(40) NULL,
+  CONSTRAINT UNQ_habitacion_num UNIQUE (num_habitacion)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- PLAN_SERVICIO
+CREATE TABLE PLAN_SERVICIO (
+  id_plan       INT PRIMARY KEY AUTO_INCREMENT,
+  nombre_plan   VARCHAR(100) NOT NULL,
+  descripcion   VARCHAR(300) NULL,
+  tarifa        DECIMAL(12,2) NOT NULL,
+  CHECK (tarifa >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ENFERMEDAD (catálogo)
+CREATE TABLE ENFERMEDAD (
+  id_enfermedad   INT PRIMARY KEY AUTO_INCREMENT,
+  nombre          VARCHAR(120) NOT NULL,
+  descripcion     VARCHAR(300) NULL,
+  CONSTRAINT UNQ_enfermedad_nombre UNIQUE (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- TABLAS DEPENDIENTES
+
+-- INGRESO
+
+CREATE TABLE INGRESO (
+  id_ingreso     INT PRIMARY KEY AUTO_INCREMENT,
+  fecha_ingreso  DATE NOT NULL,
+  id_paciente    INT NOT NULL,
+  id_habitacion  INT NOT NULL,
+  id_plan        INT NOT NULL,
+  CONSTRAINT FK_ingreso_paciente
+    FOREIGN KEY (id_paciente) REFERENCES PACIENTE(id_paciente)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT FK_ingreso_habitacion
+    FOREIGN KEY (id_habitacion) REFERENCES HABITACION(id_habitacion)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT FK_ingreso_plan
+    FOREIGN KEY (id_plan) REFERENCES PLAN_SERVICIO(id_plan)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  KEY IDX_ingreso_paciente (id_paciente),
+  KEY IDX_ingreso_habitacion (id_habitacion),
+  KEY IDX_ingreso_plan (id_plan),
+  KEY IDX_ingreso_paciente_fecha (id_paciente, fecha_ingreso)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- FICHA_MEDICA
+CREATE TABLE FICHA_MEDICA (
+  id_ficha            INT PRIMARY KEY AUTO_INCREMENT,
+  fecha_registro      DATE NOT NULL,
+  marcha              VARCHAR(200) NULL,
+  otros_aspectos      VARCHAR(300) NULL,
+  observaciones_medicas VARCHAR(500) NULL,
+  id_paciente         INT NOT NULL,
+  id_ingreso          INT NULL,
+  CONSTRAINT FK_ficha_paciente
+    FOREIGN KEY (id_paciente) REFERENCES PACIENTE(id_paciente)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT FK_ficha_ingreso
+    FOREIGN KEY (id_ingreso) REFERENCES INGRESO(id_ingreso)
+    ON UPDATE RESTRICT ON DELETE SET NULL,
+  KEY IDX_ficha_paciente (id_paciente),
+  KEY IDX_ficha_ingreso (id_ingreso)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- FACTURA
+CREATE TABLE FACTURA (
+  id_factura       INT PRIMARY KEY AUTO_INCREMENT,
+  fecha            DATE NOT NULL,
+  estado_pago      VARCHAR(30) NULL,
+  forma_financiamiento VARCHAR(40) NULL,
+  monto_total      DECIMAL(12,2) NOT NULL,
+  id_paciente      INT NOT NULL,
+  id_plan	   INT NOT NULL,
+  CHECK (monto_total >= 0),
+  CONSTRAINT FK_factura_paciente
+    FOREIGN KEY (id_paciente) REFERENCES PACIENTE(id_paciente)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+
+  CONSTRAINT fk_factura_plan
+    FOREIGN KEY (id_plan) REFERENCES plan_servicio(id_plan)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- PROMOCION
+CREATE TABLE PROMOCION (
+  id_promo        INT PRIMARY KEY AUTO_INCREMENT,
+  nombre_promo    VARCHAR(120) NOT NULL,
+  descripcion     VARCHAR(300) NULL,
+  descuento       DECIMAL(5,2) NOT NULL,
+  CHECK (descuento >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- RELACIONES N:M Y ATRIBUTOS MULTIVALUADOS
+
+
+-- TIENE (Paciente-Familiar)
+CREATE TABLE TIENE (
+  id_paciente          INT NOT NULL,
+  id_familiar          INT NOT NULL,
+  parentesco           VARCHAR(40) NOT NULL,
+  contacto_emergencia  TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (id_paciente, id_familiar),
+  CONSTRAINT FK_tiene_paciente
+    FOREIGN KEY (id_paciente) REFERENCES PACIENTE(id_paciente)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT FK_tiene_familiar
+    FOREIGN KEY (id_familiar) REFERENCES FAMILIAR(id_familiar)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  KEY IDX_tiene_familiar (id_familiar)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- TELEFONOS_FAMILIAR (multivaluado)
+CREATE TABLE TELEFONOS_FAMILIAR (
+  id_familiar  INT NOT NULL,
+  telefono     VARCHAR(30) NOT NULL,
+  PRIMARY KEY (id_familiar, telefono),
+  CONSTRAINT FK_tel_familiar
+    FOREIGN KEY (id_familiar) REFERENCES FAMILIAR(id_familiar)
+    ON UPDATE RESTRICT ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- CONTIENE (Ficha-ENFERMEDAD)
+CREATE TABLE CONTIENE (
+  id_ficha        INT NOT NULL,
+  id_enfermedad   INT NOT NULL,
+  tratamiento     VARCHAR(400) NULL,
+  PRIMARY KEY (id_ficha, id_enfermedad),
+  CONSTRAINT FK_contiene_ficha
+    FOREIGN KEY (id_ficha) REFERENCES FICHA_MEDICA(id_ficha)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT FK_contiene_enfermedad
+    FOREIGN KEY (id_enfermedad) REFERENCES ENFERMEDAD(id_enfermedad)
+    ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- PUEDE_APLICAR (Factura-Promoción)
+CREATE TABLE PUEDE_APLICAR (
+  id_factura  INT NOT NULL,
+  id_promo    INT NOT NULL,
+  PRIMARY KEY (id_factura, id_promo),
+  CONSTRAINT FK_aplicar_factura
+    FOREIGN KEY (id_factura) REFERENCES FACTURA(id_factura)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+  CONSTRAINT FK_aplicar_promo
+    FOREIGN KEY (id_promo) REFERENCES PROMOCION(id_promo)
+    ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ALERGIAS_FICHA (multivaluado)
+CREATE TABLE ALERGIAS_FICHA (
+  id_ficha  INT NOT NULL,
+  alergia   VARCHAR(80) NOT NULL,
+  PRIMARY KEY (id_ficha, alergia),
+  CONSTRAINT FK_alergias_ficha
+    FOREIGN KEY (id_ficha) REFERENCES FICHA_MEDICA(id_ficha)
+    ON UPDATE RESTRICT ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- RUTINA_PACIENTE (multivaluado)
+CREATE TABLE RUTINA_PACIENTE (
+  id_paciente  INT NOT NULL,
+  rutina       VARCHAR(80) NOT NULL,
+  PRIMARY KEY (id_paciente, rutina),
+  CONSTRAINT FK_rutina_paciente
+    FOREIGN KEY (id_paciente) REFERENCES PACIENTE(id_paciente)
+    ON UPDATE RESTRICT ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+-- CARGA DE DATOS (INSERTS)
+
+-- PACIENTE
+INSERT INTO PACIENTE (dni, nombres, apellido_paterno, apellido_materno, fecha_nacimiento, estado_civil, profesion, calle, numero, distrito, provincia, num_hijos, observaciones) VALUES
+('70010011','Ana','Quispe','Lopez','1989-05-14','Soltera','Enfermera','Av. Lima','123','Cercado','Arequipa',0,NULL),
+('70010012','Bruno','Flores','Ramos','1984-08-09','Casado','Contador','Jr. Cusco','456','Mariano Melgar','Arequipa',2,NULL),
+('70010013','Carla','Mamani','Vega','1992-11-22','Soltera','Abogada','Calle Tacna','77','Cayma','Arequipa',0,'Asma controlada'),
+('70010014','Diego','Soto','Paredes','1978-02-03','Casado','Ingeniero','Av. Arequipa','250','Yanahuara','Arequipa',1,NULL),
+('70010015','Elena','Gomez','Castro','1995-01-28','Soltera','Docente','Jr. Mollendo','910','Cerro Colorado','Arequipa',0,NULL),
+('70010016','Felipe','Huaman','Rivera','1987-07-12','Casado','Chef','Av. La Marina','51','Paucarpata','Arequipa',3,'Alergia a penicilina'),
+('70010017','Gabriela','Paredes','Aguilar','1990-09-30','Soltera','Arquitecta','Psje. Lima','34','Miraflores','Arequipa',0,NULL),
+('70010018','Hector','Salas','Diaz','1981-03-19','Casado','Chofer','Calle Colon','12','Sachaca','Arequipa',2,NULL);
+
+-- FAMILIAR
+INSERT INTO FAMILIAR (nombres, apellido_paterno, apellido_materno, calle, numero, distrito, provincia) VALUES
+('Luis','Quispe','Lopez','Av. Lima','123','Cercado','Arequipa'),
+('Martha','Flores','Ramos','Jr. Cusco','456','Mariano Melgar','Arequipa'),
+('Rosa','Mamani','Vega','Calle Tacna','77','Cayma','Arequipa'),
+('Jorge','Soto','Paredes','Av. Arequipa','250','Yanahuara','Arequipa'),
+('Carmen','Gomez','Castro','Jr. Mollendo','910','Cerro Colorado','Arequipa'),
+('Pedro','Huaman','Rivera','Av. La Marina','51','Paucarpata','Arequipa');
+
+-- TELEFONOS_FAMILIAR
+INSERT INTO TELEFONOS_FAMILIAR (id_familiar, telefono) VALUES
+(1,'054-200100'),(1,'941001001'),
+(2,'054-200200'),
+(3,'954331221'),
+(4,'054-200400'),
+(5,'980220110'),
+(6,'054-200600');
+
+-- HABITACION
+INSERT INTO HABITACION (num_habitacion, estado, tipo_habitacion) VALUES
+('101','Disponible','Individual'),
+('102','Disponible','Doble'),
+('201','Disponible','Individual'),
+('202','Mantenimiento','Doble'),
+('301','Disponible','Suite'),
+('302','Disponible','Individual');
+
+-- PLAN_SERVICIO
+INSERT INTO PLAN_SERVICIO (nombre_plan, descripcion, tarifa) VALUES
+('Básico','Atención estándar',1500.00),
+('Intermedio','Atención con terapias',2500.00),
+('Premium','Atención integral',3800.00);
+
+-- ENFERMEDAD
+INSERT INTO ENFERMEDAD (nombre, descripcion) VALUES
+('Hipertensión','Presión elevada'),
+('Diabetes','Trastorno metabólico'),
+('Asma','Inflamación vías respiratorias'),
+('Artritis','Inflamación articular'),
+('Gripe','Infección viral'),
+('Alergia a penicilina','Reacción a antibiótico');
+
+-- INGRESO
+INSERT INTO INGRESO (fecha_ingreso, id_paciente, id_habitacion, id_plan) VALUES
+('2025-09-10', 1, 1, 1),
+('2025-09-15', 2, 2, 2),
+('2025-10-01', 3, 3, 2),
+('2025-10-05', 4, 5, 3),
+('2025-10-12', 5, 6, 1),
+('2025-10-18', 6, 1, 2),
+('2025-10-20', 7, 3, 1);
+
+-- FICHA_MEDICA
+INSERT INTO FICHA_MEDICA (fecha_registro, marcha, otros_aspectos, observaciones_medicas, id_paciente, id_ingreso) VALUES
+('2025-09-10','Normal','TA 120/80','Sin novedades',1,1),
+('2025-09-15','Lenta','TA 140/90','Control HTA',2,2),
+('2025-10-01','Disnea leve','SatO2 95%','Asma leve',3,3),
+('2025-10-05','Dolor articular','Rigidez matinal','Artritis probable',4,4),
+('2025-10-12','Normal','Glucosa 130','Control DM2',5,5),
+('2025-10-18','Normal','TA 125/85','Buen estado',6,6),
+('2025-10-20','Normal','SatO2 98%','Sin novedades',7,7);
+
+-- CONTIENE
+INSERT INTO CONTIENE (id_ficha, id_enfermedad, tratamiento) VALUES
+(1,1,'IECA + dieta'),
+(2,1,'ARA II + control'),
+(3,3,'Inhalador salbutamol'),
+(4,4,'AINES + fisioterapia'),
+(5,2,'Metformina + dieta'),
+(6,5,'Reposo e hidratación');
+
+-- ALERGIAS_FICHA
+INSERT INTO ALERGIAS_FICHA (id_ficha, alergia) VALUES
+(3,'Ácaros'),
+(5,'Polen'),
+(6,'Penicilina');
+
+-- RUTINA_PACIENTE
+INSERT INTO RUTINA_PACIENTE (id_paciente, rutina) VALUES
+(1,'Caminatas'),
+(2,'Ciclismo'),
+(3,'Yoga'),
+(4,'Fisioterapia'),
+(5,'Dieta hipocalórica'),
+(6,'Gimnasio'),
+(7,'Meditación');
+
+-- TIENE
+INSERT INTO TIENE (id_paciente, id_familiar, parentesco, contacto_emergencia) VALUES
+(1,1,'Padre',1),
+(2,2,'Madre',1),
+(3,3,'Hermana',1),
+(4,4,'Hermano',0),
+(5,5,'Madre',1),
+(6,6,'Padre',1);
+
+-- PROMOCION
+INSERT INTO PROMOCION (nombre_promo, descripcion, descuento) VALUES
+('Descuento Primavera','-10% en octubre',10.00),
+('Bienvenida','-15% primera atención',15.00),
+('Fidelidad','-5% clientes recurrentes',5.00);
+
+-- FACTURA
+INSERT INTO FACTURA (fecha, estado_pago, forma_financiamiento, monto_total, id_paciente, id_plan) VALUES
+('2025-09-12','PAGADO','EFECTIVO',1500.00,1,1),
+('2025-09-20','PENDIENTE','TARJETA',2500.00,2,2),
+('2025-10-02','PAGADO','EFECTIVO',2500.00,3,2),
+('2025-10-06','PAGADO','TRANSFERENCIA',3800.00,4,1),
+('2025-10-13','PENDIENTE','EFECTIVO',1500.00,5,1),
+('2025-10-18','PAGADO','EFECTIVO',2500.00,6,2),
+('2025-10-21','PENDIENTE','TARJETA',1500.00,7,1);
+
+-- PUEDE_APLICAR
+INSERT INTO PUEDE_APLICAR (id_factura, id_promo) VALUES
+(1,2),
+(3,1),
+(4,1),
+(6,3),
+(7,1);
+
+
+-- CONSULTAS (Q1..Q10)
+
+-- Q1. Listar pacientes (DNI, nombre completo) en orden alfabético
+SELECT p.dni,
+       CONCAT(p.apellido_paterno,' ',p.apellido_materno,', ',p.nombres) AS paciente
+FROM PACIENTE p
+ORDER BY p.apellido_paterno, p.apellido_materno, p.nombres;
+
+-- Q2. Ingresos por mes (año-mes) con total de ingresos
+SELECT DATE_FORMAT(fecha_ingreso, '%Y-%m') AS anio_mes,
+       COUNT(*) AS total_ingresos
+FROM INGRESO
+GROUP BY anio_mes
+ORDER BY anio_mes;
+
+-- Q3. Ocupación histórica por habitación (cuántas veces se usó cada una)
+SELECT h.num_habitacion,
+       h.tipo_habitacion,
+       COUNT(i.id_ingreso) AS veces_utilizada
+FROM HABITACION h
+LEFT JOIN INGRESO i ON i.id_habitacion = h.id_habitacion
+GROUP BY h.id_habitacion, h.num_habitacion, h.tipo_habitacion
+ORDER BY veces_utilizada DESC, h.num_habitacion;
+
+-- Q4. Ingresos por plan de servicio (conteo y porcentaje)
+SELECT ps.nombre_plan,
+       COUNT(i.id_ingreso) AS ingresos,
+       ROUND(100 * COUNT(i.id_ingreso) / (SELECT COUNT(*) FROM INGRESO), 2) AS porcentaje
+FROM PLAN_SERVICIO ps
+LEFT JOIN INGRESO i ON i.id_plan = ps.id_plan
+GROUP BY ps.id_plan, ps.nombre_plan
+ORDER BY ingresos DESC;
+
+-- Q5. Facturación por mes y estado de pago
+SELECT DATE_FORMAT(f.fecha, '%Y-%m') AS anio_mes,
+       f.estado_pago,
+       COUNT(*) AS facturas,
+       SUM(f.monto_total) AS monto_total
+FROM FACTURA f
+GROUP BY anio_mes, f.estado_pago
+ORDER BY anio_mes, f.estado_pago;
+
+-- Q6. Facturas pendientes por paciente (detalle)
+SELECT p.dni,
+       CONCAT(p.apellido_paterno,' ',p.apellido_materno,', ',p.nombres) AS paciente,
+       f.fecha, f.monto_total, f.forma_financiamiento
+FROM FACTURA f
+JOIN PACIENTE p ON p.id_paciente = f.id_paciente
+WHERE f.estado_pago = 'PENDIENTE'
+ORDER BY f.fecha DESC;
+
+-- Q7. Top enfermedades registradas (ranking)
+SELECT e.nombre AS enfermedad,
+       COUNT(c.id_enfermedad) AS casos
+FROM ENFERMEDAD e
+LEFT JOIN CONTIENE c ON c.id_enfermedad = e.id_enfermedad
+GROUP BY e.id_enfermedad, e.nombre
+ORDER BY casos DESC, e.nombre
+LIMIT 10;
+
+-- Q8. Contactos de emergencia por paciente (incluye teléfonos si existen)
+SELECT DISTINCT
+  p.dni,
+  CONCAT(p.apellido_paterno,' ',p.apellido_materno,', ',p.nombres) AS paciente,
+  CONCAT(f.apellido_paterno,' ',f.apellido_materno,', ',f.nombres) AS familiar,
+  t.parentesco,
+  GROUP_CONCAT(tf.telefono SEPARATOR ' / ') AS telefonos
+FROM TIENE t
+JOIN PACIENTE p ON p.id_paciente = t.id_paciente
+JOIN FAMILIAR f ON f.id_familiar = t.id_familiar
+LEFT JOIN TELEFONOS_FAMILIAR tf ON tf.id_familiar = f.id_familiar
+WHERE t.contacto_emergencia = 1
+GROUP BY p.id_paciente, f.id_familiar, t.parentesco
+ORDER BY paciente;
+
+-- Q9. Pacientes con alergias registradas
+SELECT DISTINCT
+  p.dni,
+  CONCAT(p.apellido_paterno,' ',p.apellido_materno,', ',p.nombres) AS paciente,
+  af.alergia
+FROM ALERGIAS_FICHA af
+JOIN FICHA_MEDICA fm ON fm.id_ficha = af.id_ficha
+JOIN PACIENTE p ON p.id_paciente = fm.id_paciente
+ORDER BY paciente, af.alergia;
+
+-- Q10. Promociones aplicadas por factura y monto de descuento estimado
+SELECT f.id_factura,
+       DATE_FORMAT(f.fecha, '%Y-%m-%d') AS fecha,
+       CONCAT(p.apellido_paterno,' ',p.apellido_materno,', ',p.nombres) AS paciente,
+       f.monto_total,
+       GROUP_CONCAT(pr.nombre_promo ORDER BY pr.nombre_promo SEPARATOR ' + ') AS promos,
+       ROUND(SUM(f.monto_total * (pr.descuento/100)), 2) AS monto_descuento_estimado
+FROM FACTURA f
+JOIN PACIENTE p ON p.id_paciente = f.id_paciente
+LEFT JOIN PUEDE_APLICAR pa ON pa.id_factura = f.id_factura
+LEFT JOIN PROMOCION pr ON pr.id_promo = pa.id_promo
+GROUP BY f.id_factura, f.fecha, paciente, f.monto_total
+ORDER BY f.fecha DESC;
