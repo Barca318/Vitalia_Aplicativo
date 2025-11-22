@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from models import Paciente, Factura, FichaMedica, Enfermedad, Habitacion, Ingreso
+from dao import insertar_enfermedad_a_paciente, listar_enfermedades_por_paciente, eliminar_enfermedad_de_paciente
 import dao
 
 
