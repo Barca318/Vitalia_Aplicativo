@@ -331,6 +331,31 @@ def obtener_ficha(id_ficha):
         cursor.close()
         conn.close()
 
+def listar_todas_fichas():
+    sql = """
+        SELECT 
+            f.id_ficha,
+            f.id_paciente,
+            p.nombres,
+            p.apellido_paterno,
+            p.apellido_materno,
+            f.fecha_registro,
+            f.marcha,
+            f.otros_aspectos,
+            f.observaciones_medicas,
+            f.id_ingreso
+        FROM ficha_medica f
+        JOIN paciente p ON p.id_paciente = f.id_paciente
+        ORDER BY f.id_ficha
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+
 
 def actualizar_ficha(id_ficha, marcha, otros, observ):
     try:
@@ -419,6 +444,27 @@ def obtener_enfermedades_de_ficha(id_ficha):
     finally:
         cursor.close()
         conn.close()
+
+def listar_todas_enfermedades():
+    sql = """
+        SELECT 
+            f.id_ficha,
+            p.nombres,
+            p.apellido_paterno,
+            e.nombre,
+            c.tratamiento
+        FROM contiene c
+        JOIN ficha_medica f ON f.id_ficha = c.id_ficha
+        JOIN paciente p ON p.id_paciente = f.id_paciente
+        JOIN enfermedad e ON e.id_enfermedad = c.id_enfermedad
+        ORDER BY f.id_ficha, e.nombre;
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
 
 
 def eliminar_enfermedad_de_ficha(id_ficha, id_enfermedad):
@@ -772,5 +818,150 @@ def registrar_factura_plan(id_paciente, id_plan):
     finally:
         cur.close()
         conn.close()
+
+        
+        
+        
+def reporte_pacientes_con_facturas():
+    sql = """
+        SELECT p.id_paciente, p.nombres, f.id_factura, f.fecha, f.monto_total
+        FROM paciente p
+        JOIN factura f ON p.id_paciente = f.id_paciente
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+def reporte_pacientes_habitacion():
+    sql = """
+        SELECT p.id_paciente, p.nombres, h.num_habitacion, h.estado
+        FROM paciente p
+        JOIN ingreso i ON p.id_paciente = i.id_paciente
+        JOIN habitacion h ON i.id_habitacion = h.id_habitacion
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_fichas_enfermedades():
+    sql = """
+        SELECT 
+            p.nombres,
+            p.apellido_paterno,
+            f.id_ficha,
+            e.nombre,
+            c.tratamiento
+        FROM ficha_medica f
+        JOIN paciente p ON p.id_paciente = f.id_paciente
+        JOIN contiene c ON c.id_ficha = f.id_ficha
+        JOIN enfermedad e ON e.id_enfermedad = c.id_enfermedad
+        ORDER BY f.id_ficha;
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_total_facturado():
+    sql = """
+        SELECT p.id_paciente, p.nombres, SUM(f.monto_total) AS total_facturado
+        FROM paciente p
+        JOIN factura f ON p.id_paciente = f.id_paciente
+        GROUP BY p.id_paciente
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_ingresos_con_plan():
+    sql = """
+        SELECT i.id_ingreso, p.nombres, pl.nombre_plan, h.num_habitacion, i.fecha_ingreso
+        FROM ingreso i
+        JOIN paciente p ON p.id_paciente = i.id_paciente
+        JOIN plan_servicio pl ON pl.id_plan = i.id_plan
+        JOIN habitacion h ON h.id_habitacion = i.id_habitacion
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_facturas_financiamiento():
+    sql = """
+        SELECT f.id_factura, p.nombres, f.forma_financiamiento, f.monto_total
+        FROM factura f
+        JOIN paciente p ON p.id_paciente = f.id_paciente
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_pacientes_mayores():
+    sql = """
+        SELECT 
+            id_paciente,
+            dni,
+            nombres,
+            apellido_paterno,
+            apellido_materno,
+            fecha_nacimiento,
+            TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
+        FROM paciente
+        WHERE TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) > 60
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_habitaciones_disponibles():
+    sql = "SELECT * FROM habitacion WHERE estado = 'Disponible'"
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_facturas_pendientes():
+    sql = "SELECT * FROM factura WHERE estado_pago = 'Pendiente'"
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
+
+def reporte_pacientes_con_muchos_ingresos():
+    sql = """
+        SELECT p.id_paciente, p.nombres, COUNT(*) AS total_ingresos
+        FROM ingreso i
+        JOIN paciente p ON p.id_paciente = i.id_paciente
+        GROUP BY p.id_paciente
+        HAVING total_ingresos > 1
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(sql)
+    data = cur.fetchall()
+    conn.close()
+    return data
 
         
