@@ -2,7 +2,9 @@
 from db import get_connection
 from models import Paciente, Factura, FichaMedica, Enfermedad, Habitacion, Ingreso
 
-# ---------- PACIENTE ----------
+# ===================================================
+# PACIENTE
+# ===================================================
 def insertar_paciente(p: Paciente):
     conn = get_connection()
     if not conn:
@@ -119,8 +121,9 @@ def listar_pacientes():
     finally:
         conn.close()
 
-
-# ---------- FACTURA ----------
+# ===================================================
+# FACTURA
+# ===================================================
 def registrar_factura(f: Factura):
     conn = get_connection()
     if not conn:
@@ -230,6 +233,9 @@ def total_facturado_por_paciente(id_paciente: int):
     finally:
         conn.close()
         
+# ===================================================
+# FICHA MEDICA
+# ===================================================
 
 def insertar_ficha_medica(fecha, marcha, otros, observ, id_paciente, id_ingreso):
     try:
