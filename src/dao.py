@@ -129,7 +129,7 @@ def registrar_factura(f: Factura):
         return False, "No hay conexión"
     try:
         cur = conn.cursor()
-        # Insert directo (o puedes crear un sp)
+        
         sql = "INSERT INTO FACTURA (fecha, estado_pago, forma_financiamiento, monto_total, id_paciente) VALUES (%s,%s,%s,%s,%s)"
         cur.execute(sql, (f.fecha, f.estado_pago, f.forma_financiamiento, f.monto_total, f.id_paciente))
         cur.close()
@@ -139,6 +139,21 @@ def registrar_factura(f: Factura):
     finally:
         conn.close()
 
+def cargar_datos_paciente_factura(self):
+    try:
+        id_pac = int(self.ent_f_id_pac.get())
+    except:
+        messagebox.showerror("Error", "ID Paciente inválido.")
+        return
+
+    pac = dao.obtener_paciente_por_id(id_pac)
+    if not pac:
+        messagebox.showerror("Error", "No existe un paciente con ese ID.")
+        return
+
+    # Cargar datos
+    self.lbl_f_pac_nombre.config(text=f"{pac.nombres} {pac.apellido_paterno} {pac.apellido_materno}")
+    self.lbl_f_pac_dni.config(text=pac.dni)
 
 
 
@@ -338,7 +353,6 @@ def listar_todas_fichas():
             f.id_paciente,
             p.nombres,
             p.apellido_paterno,
-            p.apellido_materno,
             f.fecha_registro,
             f.marcha,
             f.otros_aspectos,
@@ -537,7 +551,7 @@ def eliminar_habitacion(id_habitacion):
         conn = get_connection()
         cur = conn.cursor()
 
-        # verificar ingresos activos
+        
         cur.execute("""SELECT COUNT(*) FROM ingreso WHERE id_habitacion=%s""",
                     (id_habitacion,))
         (cant,) = cur.fetchone()
@@ -617,7 +631,7 @@ def habitaciones_disponibles():
 
 
 def actualizar_estado_habitacion(id_habitacion, estado):
-    """Cambiar estado: Disponible / Ocupada / Mantenimiento"""
+
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -642,7 +656,6 @@ def registrar_ingreso(i: Ingreso):
         conn = get_connection()
         cur = conn.cursor()
 
-        # verificar habitación disponible
         cur.execute("SELECT estado FROM habitacion WHERE id_habitacion=%s",
                     (i.id_habitacion,))
         (estado,) = cur.fetchone()
@@ -650,12 +663,10 @@ def registrar_ingreso(i: Ingreso):
         if estado != "Disponible":
             return False, "La habitación no está disponible"
 
-        # registrar ingreso
         sql = """INSERT INTO ingreso (fecha_ingreso, id_paciente, id_habitacion, id_plan)
                  VALUES (%s,%s,%s,%s)"""
         cur.execute(sql, (i.fecha_ingreso, i.id_paciente, i.id_habitacion, i.id_plan))
 
-        # cambiar habitación a OCUPADA
         cur.execute("UPDATE habitacion SET estado='Ocupada' WHERE id_habitacion=%s",
                     (i.id_habitacion,))
 
@@ -675,7 +686,6 @@ def editar_ingreso(i: Ingreso, hab_anterior):
         conn = get_connection()
         cur = conn.cursor()
 
-        # si cambia de habitación
         if i.id_habitacion != hab_anterior:
             cur.execute("UPDATE habitacion SET estado='Disponible' WHERE id_habitacion=%s",
                         (hab_anterior,))
@@ -707,7 +717,6 @@ def eliminar_ingreso(id_ingreso, id_habitacion):
 
         cur.execute("DELETE FROM ingreso WHERE id_ingreso=%s", (id_ingreso,))
 
-        # liberar habitación
         cur.execute("UPDATE habitacion SET estado='Disponible' WHERE id_habitacion=%s",
                     (id_habitacion,))
 
@@ -820,148 +829,66 @@ def registrar_factura_plan(id_paciente, id_plan):
         conn.close()
 
         
-        
-        
-def reporte_pacientes_con_facturas():
-    sql = """
-        SELECT p.id_paciente, p.nombres, f.id_factura, f.fecha, f.monto_total
-        FROM paciente p
-        JOIN factura f ON p.id_paciente = f.id_paciente
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
-def reporte_pacientes_habitacion():
-    sql = """
-        SELECT p.id_paciente, p.nombres, h.num_habitacion, h.estado
-        FROM paciente p
-        JOIN ingreso i ON p.id_paciente = i.id_paciente
-        JOIN habitacion h ON i.id_habitacion = h.id_habitacion
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+def obtener_datos_completos_paciente(id_paciente):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
 
-def reporte_fichas_enfermedades():
-    sql = """
-        SELECT 
-            p.nombres,
-            p.apellido_paterno,
-            f.id_ficha,
-            e.nombre,
-            c.tratamiento
-        FROM ficha_medica f
-        JOIN paciente p ON p.id_paciente = f.id_paciente
-        JOIN contiene c ON c.id_ficha = f.id_ficha
-        JOIN enfermedad e ON e.id_enfermedad = c.id_enfermedad
-        ORDER BY f.id_ficha;
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        # Datos del paciente
+        cursor.execute("SELECT * FROM paciente WHERE id_paciente=%s", (id_paciente,))
+        paciente = cursor.fetchone()
 
-def reporte_total_facturado():
-    sql = """
-        SELECT p.id_paciente, p.nombres, SUM(f.monto_total) AS total_facturado
-        FROM paciente p
-        JOIN factura f ON p.id_paciente = f.id_paciente
-        GROUP BY p.id_paciente
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        # Facturas
+        cursor.execute("SELECT * FROM factura WHERE id_paciente=%s", (id_paciente,))
+        facturas = cursor.fetchall()
 
-def reporte_ingresos_con_plan():
-    sql = """
-        SELECT i.id_ingreso, p.nombres, pl.nombre_plan, h.num_habitacion, i.fecha_ingreso
-        FROM ingreso i
-        JOIN paciente p ON p.id_paciente = i.id_paciente
-        JOIN plan_servicio pl ON pl.id_plan = i.id_plan
-        JOIN habitacion h ON h.id_habitacion = i.id_habitacion
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        # Fichas médicas
+        cursor.execute("""
+            SELECT * FROM ficha_medica 
+            WHERE id_paciente=%s
+        """, (id_paciente,))
+        fichas = cursor.fetchall()
 
-def reporte_facturas_financiamiento():
-    sql = """
-        SELECT f.id_factura, p.nombres, f.forma_financiamiento, f.monto_total
-        FROM factura f
-        JOIN paciente p ON p.id_paciente = f.id_paciente
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        # Enfermedades según ficha
+        cursor.execute("""
+            SELECT c.id_ficha, e.nombre, c.tratamiento
+            FROM contiene c
+            JOIN enfermedad e ON c.id_enfermedad = e.id_enfermedad
+            JOIN ficha_medica f ON f.id_ficha = c.id_ficha
+            WHERE f.id_paciente=%s
+        """, (id_paciente,))
+        enfermedades = cursor.fetchall()
 
-def reporte_pacientes_mayores():
-    sql = """
-        SELECT 
-            id_paciente,
-            dni,
-            nombres,
-            apellido_paterno,
-            apellido_materno,
-            fecha_nacimiento,
-            TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
-        FROM paciente
-        WHERE TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) > 60
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        # Ingresos
+        cursor.execute("""
+            SELECT * FROM ingreso WHERE id_paciente=%s
+        """, (id_paciente,))
+        ingresos = cursor.fetchall()
 
-def reporte_habitaciones_disponibles():
-    sql = "SELECT * FROM habitacion WHERE estado = 'Disponible'"
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+        return paciente, facturas, fichas, enfermedades, ingresos
 
-def reporte_facturas_pendientes():
-    sql = "SELECT * FROM factura WHERE estado_pago = 'Pendiente'"
+    except Exception as e:
+        print("Error obtener datos completos:", e)
+        return None, [], [], [], []
+    finally:
+        cursor.close()
+        conn.close()
+def obtener_paciente_por_id(id_paciente: int):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
-
-def reporte_pacientes_con_muchos_ingresos():
-    sql = """
-        SELECT p.id_paciente, p.nombres, COUNT(*) AS total_ingresos
-        FROM ingreso i
-        JOIN paciente p ON p.id_paciente = i.id_paciente
-        GROUP BY p.id_paciente
-        HAVING total_ingresos > 1
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(sql)
-    data = cur.fetchall()
-    conn.close()
-    return data
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM PACIENTE WHERE id_paciente = %s", (id_paciente,))
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            return Paciente(**row)
+        return None
+    except Exception as e:
+        print("Error obtener_paciente_por_id:", e)
+        return None
+    finally:
+        conn.close()
 
         
