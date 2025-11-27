@@ -7,10 +7,10 @@ from tkinter import simpledialog
 
 
 
-class VitaliaApp(tk.Tk):
+class RegistroClientesApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Vitalia - Registro de Clientes")
+        self.title("APLICATIVO MDG - Registro de Clientes")
         self.geometry("1100x650")
         self.create_widgets()
         self.setup_style()
@@ -24,7 +24,7 @@ class VitaliaApp(tk.Tk):
     # Título
         tk.Label(
             self.dashboard, 
-            text="VITALIA – REGISTRO DE CLIENTES",
+            text="APLICATIVO MDG – REGISTRO DE CLIENTES",
             font=("Arial", 26, "bold"),
             bg="#eef2f3",
             fg="#2a4d69"
@@ -141,59 +141,103 @@ class VitaliaApp(tk.Tk):
 
     # ---------------- Pacientes ----------------
     def build_pacientes_tab(self):
-        frame = self.tab_pacientes
+        frame = tk.Frame(self.tab_pacientes, bg="#f2f2f2")
+        frame.pack(fill="both", expand=True)
+
+
+    
+        panel_form = tk.Frame(frame, bg="#ffffff", bd=2, relief="groove")
+        panel_form.grid(row=0, column=0, padx=10, pady=10, sticky="n")
 
         ttk.Label(
-            frame,
-            text="Gestión de Pacientes",
-            font=("Arial", 18, "bold")
-        )   .grid(row=0, column=0, columnspan=3, pady=15)
-        
+            panel_form,
+            text="Registro de Pacientes",
+            font=("Arial", 16, "bold"),
+            background="#ffffff"
+        ).grid(row=0, column=0, columnspan=2, pady=10)
+
         labels = [
             "DNI:", "Nombres:", "Apellido Paterno:", "Apellido Materno:",
-            "Fecha Nac (YYYY-MM-DD):",
-            "Estado Civil:", "Profesión:", "Calle:", "Número:",
-            "Distrito:", "Provincia:", "Número de Hijos:", "Observaciones:"
+            "Fecha Nac (YYYY-MM-DD):", "Estado Civil:", "Profesión:", "Calle:",
+            "Número:", "Distrito:", "Provincia:", "Número de Hijos:", "Observaciones:"
         ]
-        
+
         self.entries = []
         row = 1
+
         for label in labels:
-            ttk.Label(frame, text=label).grid(row=row, column=0, sticky='e', padx=5, pady=5)
-            entry = ttk.Entry(frame, width=35)
+            tk.Label(panel_form, text=label, bg="#ffffff").grid(
+                row=row, column=0, sticky="e", padx=5, pady=5
+            )
+            entry = ttk.Entry(panel_form, width=28)
             entry.grid(row=row, column=1, padx=5, pady=5)
             self.entries.append(entry)
             row += 1
 
         (self.ent_dni, self.ent_nombres, self.ent_ap_pat, self.ent_ap_mat,
-        self.ent_fecha, self.ent_estado_civil, self.ent_profesion, self.ent_calle,
-        self.ent_numero, self.ent_distrito, self.ent_provincia,
+        self.ent_fecha, self.ent_estado_civil, self.ent_profesion,
+        self.ent_calle, self.ent_numero, self.ent_distrito, self.ent_provincia,
         self.ent_num_hijos, self.ent_observaciones) = self.entries
 
-        ttk.Button(frame, text="Insertar", command=self.insertar_paciente).grid(row=row, column=0, pady=10)
-        ttk.Button(frame, text="Actualizar (por ID)", command=self.actualizar_paciente).grid(row=row, column=1, pady=10)
-        ttk.Button(frame, text="Eliminar (por ID)", command=self.eliminar_paciente).grid(row=row, column=2, pady=10)
-        
-        ttk.Label(frame, text="ID (actualizar/eliminar):").grid(row=0, column=2)
-        self.ent_id_oper = ttk.Entry(frame, width=15)
-        self.ent_id_oper.grid(row=0, column=3)
-
+    
+        tk.Label(panel_form, text="ID Operación:", bg="#ffffff").grid(row=row, column=0)
+        self.ent_id_oper = ttk.Entry(panel_form, width=15)
+        self.ent_id_oper.grid(row=row, column=1, pady=5)
         row += 1
 
+    
+        ttk.Button(panel_form, text="Insertar", command=self.insertar_paciente).grid(row=row, column=0, pady=8)
+        ttk.Button(panel_form, text="Actualizar", command=self.actualizar_paciente).grid(row=row, column=1, pady=8)
+        row += 1
+
+        ttk.Button(panel_form, text="Eliminar", command=self.eliminar_paciente).grid(row=row, column=0, pady=8)
+        ttk.Button(panel_form, text="Refrescar", command=self.refrescar_pacientes).grid(row=row, column=1, pady=8)
+        row += 2
+
+        ttk.Button(panel_form, text="Volver al menú", command=self.go_dashboard).grid(row=row, column=0, columnspan=2, pady=15)
+
+
+        panel_tabla = tk.Frame(frame, bg="#f2f2f2")
+        panel_tabla.grid(row=0, column=1, padx=10, pady=10)
+
+        ttk.Label(
+            panel_tabla,
+            text="Lista de Pacientes",
+            font=("Arial", 16, "bold"),
+            background="#f2f2f2"
+        ).pack(pady=5)
+
+    
+        contenedor = tk.Frame(panel_tabla)
+        contenedor.pack()
+
+        scroll_y = ttk.Scrollbar(contenedor, orient="vertical")
+        scroll_x = ttk.Scrollbar(contenedor, orient="horizontal")
+
         self.tree_pacientes = ttk.Treeview(
-            frame,
+            contenedor,
             columns=(
-                'id','dni','nombres','apP','apM','fecha',
-                'estado','prof','calle','num','dist','prov','hijos','obs'
+                'id','dni','nombres','apP','apM','fecha','estado',
+                'prof','calle','num','dist','prov','hijos','obs'
             ),
             show='headings',
-            height=12
+            height=18,
+            yscrollcommand=scroll_y.set,
+            xscrollcommand=scroll_x.set
         )
 
+        scroll_y.config(command=self.tree_pacientes.yview)
+        scroll_y.pack(side="right", fill="y")
+
+        scroll_x.config(command=self.tree_pacientes.xview)
+        scroll_x.pack(side="bottom", fill="x")
+
+        self.tree_pacientes.pack()
+
         headers = [
-            ('id', 'ID'), ('dni', 'DNI'), ('nombres', 'Nombres'),
+            ('id', 'ID'), ('dni','DNI'), ('nombres','Nombres'),
             ('apP','A. Paterno'), ('apM','A. Materno'),
-            ('fecha','Fecha Nac'), ('estado',"Estado Civil"),
+            ('fecha','Fecha Nac.'), ('estado',"Estado Civil"),
             ('prof','Profesión'), ('calle','Calle'), ('num',"Número"),
             ('dist',"Distrito"), ('prov',"Provincia"),
             ('hijos',"Hijos"), ('obs',"Observaciones")
@@ -201,19 +245,10 @@ class VitaliaApp(tk.Tk):
 
         for col, text in headers:
             self.tree_pacientes.heading(col, text=text)
-            self.tree_pacientes.column(col, width=100)
-
-        self.tree_pacientes.grid(row=row, column=0, columnspan=4, sticky='nsew', pady=10)
-        frame.grid_rowconfigure(row, weight=1)
-
-        ttk.Button(frame, text="Refrescar lista", command=self.refrescar_pacientes).grid(row=row+1, column=0, pady=5)
-
-        ttk.Button(frame, text="Volver al menú", command=self.go_dashboard).grid(row=row+2, column=0, pady=10)
-
+            self.tree_pacientes.column(col, width=110)
 
         self.refrescar_pacientes()
-        
-        
+
 
     # ---------------- FUNCIONES PACIENTE ----------------
 
@@ -380,76 +415,83 @@ class VitaliaApp(tk.Tk):
     def build_facturas_tab(self):
         frame = self.tab_facturas
 
+
         ttk.Label(
             frame,
             text="Gestión de Facturas",
             font=("Arial", 18, "bold")
         ).grid(row=0, column=0, columnspan=5, pady=15)
 
-        
+
         ttk.Label(frame, text="ID Paciente:").grid(row=1, column=0, sticky='e')
-        self.ent_f_id_pac = ttk.Entry(frame); self.ent_f_id_pac.grid(row=1,column=1,padx=5,pady=5)
-
-        ttk.Label(frame, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, sticky='e')
-        self.ent_f_fecha = ttk.Entry(frame); self.ent_f_fecha.grid(row=2,column=1,padx=5,pady=5)
-
-        ttk.Label(frame, text="Estado pago:").grid(row=3, column=0, sticky='e')
-        self.ent_f_estado = ttk.Entry(frame); self.ent_f_estado.grid(row=3,column=1,padx=5,pady=5)
-
-        ttk.Label(frame, text="Forma financiamiento:").grid(row=4, column=0, sticky='e')
-        self.ent_f_forma = ttk.Entry(frame); self.ent_f_forma.grid(row=4,column=1,padx=5,pady=5)
-
-        ttk.Label(frame, text="Monto total:").grid(row=5, column=0, sticky='e')
-        self.ent_f_monto = ttk.Entry(frame); self.ent_f_monto.grid(row=5,column=1,padx=5,pady=5)
-
-        btn_reg = ttk.Button(frame, text="Registrar factura", command=self.registrar_factura)
-        btn_reg.grid(row=6, column=0, pady=8)
-        btn_total = ttk.Button(frame, text="Total general", command=self.mostrar_total_general)
-        btn_total.grid(row=6, column=1, pady=8)
-        btn_total_pac = ttk.Button(frame, text="Total por paciente", command=self.mostrar_total_por_paciente)
-        btn_total_pac.grid(row=6, column=2, pady=8)
+        self.ent_f_id_pac = ttk.Entry(frame)
+        self.ent_f_id_pac.grid(row=1, column=1, padx=5, pady=5)
 
 
-        btn_promos = ttk.Button(frame, text="Ver promociones", command=self.mostrar_promociones)
-        btn_promos.grid(row=6, column=3, pady=8)
+        btn_cargar = ttk.Button(frame, text="Cargar datos", command=self.cargar_paciente)
+        btn_cargar.grid(row=1, column=2, padx=5, pady=5)
+
+
+        ttk.Label(frame, text="Nombre:").grid(row=2, column=0, sticky='e')
+        self.lbl_f_pac_nombre = ttk.Label(frame, text="-", width=40, anchor="w")
+        self.lbl_f_pac_nombre.grid(row=2, column=1, columnspan=3, sticky="w", padx=5)
+
+        ttk.Label(frame, text="DNI:").grid(row=3, column=0, sticky='e')
+        self.lbl_f_pac_dni = ttk.Label(frame, text="-", width=20, anchor="w")
+        self.lbl_f_pac_dni.grid(row=3, column=1, sticky="w", padx=5)
 
 
 
-        ttk.Label(frame, text="ID Factura (buscar):").grid(row=7, column=0, sticky='e')
-        self.ent_buscar_fact = ttk.Entry(frame); self.ent_buscar_fact.grid(row=7, column=1)
-        btn_buscar = ttk.Button(frame, text="Buscar", command=self.buscar_factura)
-        btn_buscar.grid(row=7, column=2)
+        ttk.Label(frame, text="Fecha (YYYY-MM-DD):").grid(row=4, column=0, sticky="e")
+        self.ent_f_fecha = ttk.Entry(frame)
+        self.ent_f_fecha.grid(row=4, column=1, padx=5, pady=5)
 
-        ttk.Label(frame, text="ID Factura (actualizar estado):").grid(row=8, column=0, sticky='e')
-        self.ent_act_fact = ttk.Entry(frame); self.ent_act_fact.grid(row=8,column=1)
-        ttk.Label(frame, text="Nuevo estado:").grid(row=8,column=2, sticky='e')
-        self.ent_act_estado = ttk.Entry(frame); self.ent_act_estado.grid(row=8,column=3)
-        btn_act = ttk.Button(frame, text="Actualizar estado", command=self.actualizar_estado_factura)
-        btn_act.grid(row=8, column=4, padx=5)
+        ttk.Label(frame, text="Estado pago:").grid(row=5, column=0, sticky="e")
+        self.ent_f_estado = ttk.Entry(frame)
+        self.ent_f_estado.grid(row=5, column=1, padx=5, pady=5)
 
+        ttk.Label(frame, text="Forma financiamiento:").grid(row=6, column=0, sticky="e")
+        self.ent_f_forma = ttk.Entry(frame)
+        self.ent_f_forma.grid(row=6, column=1, padx=5, pady=5)
+
+        ttk.Label(frame, text="Monto total:").grid(row=7, column=0, sticky="e")
+        self.ent_f_monto = ttk.Entry(frame)
+        self.ent_f_monto.grid(row=7, column=1, padx=5, pady=5)
+
+    
+        ttk.Button(frame, text="Registrar factura", command=self.registrar_factura).grid(row=8, column=0, pady=8)
+        ttk.Button(frame, text="Total general", command=self.mostrar_total_general).grid(row=8, column=1, pady=8)
+        ttk.Button(frame, text="Total por paciente", command=self.mostrar_total_por_paciente).grid(row=8, column=2, pady=8)
+        ttk.Button(frame, text="Ver promociones", command=self.mostrar_promociones).grid(row=8, column=3, pady=8)
+
+    
+        ttk.Label(frame, text="ID Factura (buscar):").grid(row=9, column=0, sticky='e')
+        self.ent_buscar_fact = ttk.Entry(frame); self.ent_buscar_fact.grid(row=9, column=1)
+        ttk.Button(frame, text="Buscar", command=self.buscar_factura).grid(row=9, column=2)
+
+    
+        ttk.Label(frame, text="ID Factura (actualizar estado):").grid(row=10, column=0, sticky='e')
+        self.ent_act_fact = ttk.Entry(frame); self.ent_act_fact.grid(row=10, column=1)
+        ttk.Label(frame, text="Nuevo estado:").grid(row=10, column=2, sticky='e')
+        self.ent_act_estado = ttk.Entry(frame); self.ent_act_estado.grid(row=10, column=3)
+        ttk.Button(frame, text="Actualizar estado", command=self.actualizar_estado_factura).grid(row=10, column=4)
+
+    
         self.txt_fact_result = tk.Text(frame, height=10)
-        self.txt_fact_result.grid(row=9, column=0, columnspan=5, padx=5, pady=5, sticky='nsew')
+        self.txt_fact_result.grid(row=11, column=0, columnspan=5, padx=5, pady=5, sticky='nsew')
 
-        btn_listar = ttk.Button(frame, text="Listar facturas con pacientes", command=self.listar_facturas_pacientes)
-        btn_listar.grid(row=10, column=0, pady=5)
+        ttk.Button(frame, text="Listar facturas con pacientes", command=self.listar_facturas_pacientes).grid(row=12, column=0, pady=5)
 
-        ttk.Label(frame, text="ID Factura (eliminar):").grid(row=11, column=0, sticky='e')
-        self.ent_del_fact = ttk.Entry(frame)
-        self.ent_del_fact.grid(row=11, column=1, padx=5, pady=5)
+    
+        ttk.Label(frame, text="ID Factura (eliminar):").grid(row=13, column=0, sticky='e')
+        self.ent_del_fact = ttk.Entry(frame); self.ent_del_fact.grid(row=13, column=1)
+        ttk.Button(frame, text="Eliminar factura", command=self.eliminar_factura_ui).grid(row=13, column=2)
 
-        btn_del = ttk.Button(frame, text="Eliminar factura", command=self.eliminar_factura_ui)
-        btn_del.grid(row=11, column=2, padx=5, pady=5)
-        
-        btn_plan = ttk.Button(frame, text="Asignar Plan al Paciente", command=self.asignar_plan_ui)
-        btn_plan.grid(row=12, column=0, pady=8)
+        ttk.Button(frame, text="Asignar Plan al Paciente", command=self.asignar_plan_ui).grid(row=14, column=0, pady=8)
 
-        
-        ttk.Button(frame, text="Volver al menú", command=self.go_dashboard).grid(row=13, column=0, pady=10)
+        ttk.Button(frame, text="Volver al menú", command=self.go_dashboard).grid(row=15, column=0, pady=10)
 
 
-
-
-    # -- NUEVA FUNCIÓN IMPORTANTE --
     def listar_facturas_pacientes(self):
         datos = dao.listar_facturas_con_pacientes()
 
@@ -469,6 +511,71 @@ class VitaliaApp(tk.Tk):
             )
 
         self.txt_fact_result.insert(tk.END, text)
+
+
+    def cargar_paciente(self):
+
+        id_text = self.ent_f_id_pac.get().strip()
+        if not id_text:
+            messagebox.showwarning("Cargar datos", "Ingrese un ID de paciente.")
+            return
+
+        try:
+            idp = int(id_text)
+        except ValueError:
+            messagebox.showerror("Cargar datos", "El ID debe ser un número entero.")
+            return
+ 
+        try:
+            paciente = dao.buscar_paciente_por_id(idp)
+        except Exception as e:
+            paciente = None
+            print("Error al llamar a dao.buscar_paciente_por_id:", e)
+
+    
+        if paciente is None:
+        
+            try:
+                filas = dao.listar_pacientes()
+                paciente = None
+                for p in filas:
+                
+                    if hasattr(p, "id_paciente") and p.id_paciente == idp:
+                        paciente = {"dni": p.dni, "nombres": p.nombres, "apellido_paterno": getattr(p, "apellido_paterno", ""), "apellido_materno": getattr(p, "apellido_materno", "")}
+                        break
+                
+                    if isinstance(p, dict) and p.get("id_paciente") == idp:
+                        paciente = p
+                        break
+            except Exception as e:
+                paciente = None
+                print("Error fallback listar_pacientes:", e)
+
+        if not paciente:
+            self.lbl_f_pac_nombre.config(text="No encontrado")
+            self.lbl_f_pac_dni.config(text="-")
+            messagebox.showinfo("Cargar datos", f"Paciente con ID {idp} no encontrado.")
+            return
+
+
+        if isinstance(paciente, dict):
+            nombre = f"{paciente.get('nombres','')} {paciente.get('apellido_paterno','')} {paciente.get('apellido_materno','')}".strip()
+            dni = paciente.get('dni','-')
+        else:
+
+            nombre = f"{getattr(paciente,'nombres','')} {getattr(paciente,'apellido_paterno','')} {getattr(paciente,'apellido_materno','')}".strip()
+            dni = getattr(paciente, 'dni', '-')
+
+        if not nombre:
+            nombre = "-"
+        if not dni:
+            dni = "-"
+
+
+        self.lbl_f_pac_nombre.config(text=nombre)
+        self.lbl_f_pac_dni.config(text=dni)
+
+
 
     def registrar_factura(self):
         try:
@@ -689,6 +796,39 @@ class VitaliaApp(tk.Tk):
         self.fm_listar = tk.Entry(frame)
         self.fm_listar.grid(row=7, column=1)
 
+        tk.Label(frame, text="ID Ficha (editar):").grid(row=13, column=0)
+        self.fm_id_edit = tk.Entry(frame)
+        self.fm_id_edit.grid(row=13, column=1)
+
+        tk.Label(frame, text="Nueva marcha:").grid(row=14, column=0)
+        self.fm_edit_marcha = tk.Entry(frame)
+        self.fm_edit_marcha.grid(row=14, column=1)
+
+        tk.Label(frame, text="Nuevos otros aspectos:").grid(row=15, column=0)
+        self.fm_edit_otros = tk.Entry(frame)
+        self.fm_edit_otros.grid(row=15, column=1)
+
+        tk.Label(frame, text="Nuevas observaciones:").grid(row=16, column=0)
+        self.fm_edit_obs = tk.Entry(frame)
+        self.fm_edit_obs.grid(row=16, column=1)
+
+        tk.Button(
+            frame, text="Actualizar ficha",
+            command=self.ui_actualizar_ficha
+        ).grid(row=17, column=1, pady=5)
+
+
+        
+        tk.Label(frame, text="ID Ficha (eliminar):").grid(row=18, column=0)
+        self.fm_id_delete = tk.Entry(frame)
+        self.fm_id_delete.grid(row=18, column=1)
+
+        tk.Button(
+            frame, text="Eliminar ficha",
+            command=self.ui_eliminar_ficha
+        ).grid(row=18, column=2, pady=5)
+
+
         tk.Button(
             frame, text="Listar fichas",
             command=self.ui_listar_todas_fichas
@@ -713,17 +853,17 @@ class VitaliaApp(tk.Tk):
         self.fm_tratamiento.grid(row=11, column=1)
 
         tk.Button(
-            frame, text="Agregar enfermedad",
+            frame, text="Agregar enfermedad en paciente",
             command=self.action_insertar_enfermedad
         ).grid(row=12, column=1)
 
         tk.Button(
-            frame, text="Ver enfermedades",
+            frame, text="Ver enfermedades de los pacientes",
             command=self.ui_listar_todas_enfermedades
         ).grid(row=12, column=2)
 
         ttk.Button(frame, text="Volver al menú", command=self.go_dashboard
-        ).grid(row=14, column=0, pady=10)
+        ).grid(row=19, column=0, pady=10)
 
 
     def action_registrar_ficha(self):
@@ -765,6 +905,38 @@ class VitaliaApp(tk.Tk):
                 f"ID Ingreso: {row[8]}\n"
                 f"{'-'*50}\n"
         )
+            
+    def ui_actualizar_ficha(self):
+        id_ficha = self.fm_id_edit.get()
+        marcha = self.fm_edit_marcha.get()
+        otros = self.fm_edit_otros.get()
+        obs = self.fm_edit_obs.get()
+
+        if not id_ficha:
+            messagebox.showwarning("Error", "Debe indicar un ID de ficha.")
+            return
+
+        ok = dao.actualizar_ficha(id_ficha, marcha, otros, obs)
+
+        if ok:
+            messagebox.showinfo("Éxito", "Ficha médica actualizada correctamente.")
+        else:
+            messagebox.showerror("Error", "No se pudo actualizar la ficha.")
+
+    def ui_eliminar_ficha(self):
+        id_f = self.fm_id_delete.get()
+
+        if not id_f:
+            messagebox.showwarning("Error", "Debe indicar un ID de ficha.")
+            return
+
+        ok = dao.eliminar_ficha(id_f)
+
+        if ok:
+            messagebox.showinfo("Éxito", "Ficha médica eliminada correctamente.")
+        else:
+            messagebox.showerror("Error", "No se pudo eliminar la ficha.")
+
     def action_insertar_enfermedad(self):
         from dao import insertar_enfermedad_en_ficha
 
@@ -1230,102 +1402,75 @@ class VitaliaApp(tk.Tk):
         ).grid(row=0, column=0, columnspan=3, pady=15)
 
 
-        ttk.Label(frame, text="Seleccione un reporte:").grid(row=1, column=0, sticky='e', padx=5)
+        ttk.Label(frame, text="ID Paciente (Reporte completo):").grid(row=20, column=0)
+        self.rep_id_pac = ttk.Entry(frame, width=20)
+        self.rep_id_pac.grid(row=20, column=1)
 
-        self.cmb_reportes = ttk.Combobox(frame, state="readonly", width=50)
-        self.cmb_reportes['values'] = [
-            "Pacientes con sus facturas",
-            "Pacientes con su habitación",
-            "Fichas médicas y enfermedades",
-            "Pacientes y total facturado",
-            "Ingresos con planes y habitación",
-            "Facturas y forma financiamiento",
-            "Pacientes mayores de 60",
-            "Habitaciones disponibles",
-            "Facturas pendientes",
-            "Pacientes con más de 1 ingreso"
-        ]
-        self.cmb_reportes.grid(row=1, column=1, padx=5, pady=5)
+        ttk.Button(frame, text="Generar Reporte Completo", command=self.reporte_completo_paciente)\
+            .grid(row=20, column=2, pady=10)
 
-        ttk.Button(frame, text="Generar reporte", command=self.generar_reporte)\
-            .grid(row=1, column=2, padx=5)
+        self.rep_output = tk.Text(frame, width=200, height=40)
+        self.rep_output.grid(row=21, column=0, columnspan=4, pady=10)
 
-        self.tree_reportes = ttk.Treeview(frame, columns=("A","B","C","D","E"), show="headings")
-        self.tree_reportes.grid(row=2, column=0, columnspan=3, pady=10, sticky="nsew")
+        ttk.Button(frame, text="Volver al menú", command=self.go_dashboard).grid(row=28, column=0, pady=10)
 
 
-        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=self.tree_reportes.yview)
-        self.tree_reportes.configure(yscrollcommand=scrollbar.set)
-        scrollbar.grid(row=2, column=3, sticky='ns')
+    def reporte_completo_paciente(self):
+            self.rep_output.delete("1.0", tk.END)
 
-        ttk.Button(frame, text="Volver al menú", command=self.go_dashboard)\
-            .grid(row=3, column=0, pady=15)
-        
-        
-    def generar_reporte(self):
-        reporte = self.cmb_reportes.get()
- 
-        for col in self.tree_reportes["columns"]:
-            self.tree_reportes.heading(col, text="")
-        self.tree_reportes.delete(*self.tree_reportes.get_children())
+            idp = self.rep_id_pac.get().strip()
+            if not idp.isdigit():
+                self.rep_output.insert(tk.END, "ID inválida")
+                return
 
-        import dao
+            paciente, facturas, fichas, enfermedades, ingresos = dao.obtener_datos_completos_paciente(int(idp))
 
-        if reporte == "Pacientes con sus facturas":
-            data = dao.reporte_pacientes_con_facturas()
-            headers = ["ID Paciente", "Nombre", "ID Factura", "Fecha", "Monto"]
+            if paciente is None:
+                self.rep_output.insert(tk.END, "❌ No existe un paciente con esa ID")
+                return
 
-        elif reporte == "Pacientes con su habitación":
-            data = dao.reporte_pacientes_habitacion()
-            headers = ["ID Paciente", "Nombre", "Habitación", "Estado"]
+    
+            self.rep_output.insert(tk.END, "=== DATOS DEL PACIENTE ===\n")
+            for k,v in paciente.items():
+                self.rep_output.insert(tk.END, f"{k}: {v}\n")
+            self.rep_output.insert(tk.END, "\n-----------------------------\n\n")
 
-        elif reporte == "Fichas médicas y enfermedades":
-            data = dao.reporte_fichas_enfermedades()
-            headers = ["Paciente", "ID Ficha", "Enfermedad"]
+    
+            self.rep_output.insert(tk.END, "=== FACTURAS ===\n")
+            if len(facturas)==0:
+                self.rep_output.insert(tk.END, "Sin facturas\n")
+            else:
+                for f in facturas:
+                    self.rep_output.insert(tk.END, f"{f}\n")
+            self.rep_output.insert(tk.END, "\n-----------------------------\n\n")
 
-        elif reporte == "Pacientes y total facturado":
-            data = dao.reporte_total_facturado()
-            headers = ["ID Paciente", "Nombre", "Total Facturado"]
+    
+            self.rep_output.insert(tk.END, "=== FICHAS MÉDICAS ===\n")
+            if len(fichas)==0:
+                self.rep_output.insert(tk.END, "Sin fichas médicas\n")
+            else:
+                for fm in fichas:
+                    self.rep_output.insert(tk.END, f"{fm}\n")
+            self.rep_output.insert(tk.END, "\n-----------------------------\n\n")
 
-        elif reporte == "Ingresos con planes y habitación":
-            data = dao.reporte_ingresos_con_plan()
-            headers = ["ID Ingreso", "Paciente", "Plan", "Habitación", "Fecha"]
+    
+            self.rep_output.insert(tk.END, "=== ENFERMEDADES ===\n")
+            if len(enfermedades)==0:
+                self.rep_output.insert(tk.END, "Sin enfermedades\n")
+            else:
+                for enf in enfermedades:
+                    self.rep_output.insert(tk.END, f"{enf}\n")
+            self.rep_output.insert(tk.END, "\n-----------------------------\n\n")
 
-        elif reporte == "Facturas y forma financiamiento":
-            data = dao.reporte_facturas_financiamiento()
-            headers = ["ID Factura", "Paciente", "Financiamiento", "Monto"]
+    
+            self.rep_output.insert(tk.END, "=== INGRESOS ===\n")
+            if len(ingresos)==0:
+                self.rep_output.insert(tk.END, "Sin ingresos\n")
+            else:
+                for ing in ingresos:
+                    self.rep_output.insert(tk.END, f"{ing}\n")
 
-        elif reporte == "Pacientes mayores de 60":
-            data = dao.reporte_pacientes_mayores()
-            headers = ["ID", "Nombre", "Edad", "Teléfono", "Dirección"]
-
-        elif reporte == "Habitaciones disponibles":
-            data = dao.reporte_habitaciones_disponibles()
-            headers = ["ID", "Número", "Estado", "Capacidad"]
-
-        elif reporte == "Facturas pendientes":
-            data = dao.reporte_facturas_pendientes()
-            headers = ["ID Factura", "Fecha", "Estado", "Financiamiento", "Monto", "ID Paciente", "ID Plan"]
-
-        elif reporte == "Pacientes con más de 1 ingreso":
-            data = dao.reporte_pacientes_con_muchos_ingresos()
-            headers = ["ID Paciente", "Nombre", "Total ingresos"]
-
-        else:
-            messagebox.showwarning("Atención", "Debe seleccionar un reporte.")
-            return
-
-
-        cols = list(range(len(headers)))
-        self.tree_reportes["columns"] = cols
-
-        for i, h in enumerate(headers):
-            self.tree_reportes.heading(i, text=h)
-            self.tree_reportes.column(i, width=180)
-
-   
-        for row in data:
-            self.tree_reportes.insert("", "end", values=row)
+            self.rep_output.insert(tk.END, "\n=== FIN DEL REPORTE ===")
 
 
     def go_dashboard(self):
@@ -1336,5 +1481,5 @@ class VitaliaApp(tk.Tk):
             self.dashboard.pack(fill="both", expand=True)
 
 if __name__ == "__main__":
-    app = VitaliaApp()
+    app = RegistroClientesApp()
     app.mainloop()
